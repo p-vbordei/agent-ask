@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { buildQuestion, cidOf, verifyArtifact } from "../src/artifact";
+import { buildAnswer, buildQuestion, cidOf, verifyArtifact } from "../src/artifact";
 import { generateKeypair } from "../src/identity";
 
 describe("question artifact", () => {
@@ -85,5 +85,40 @@ describe("question artifact", () => {
     const b = await buildQuestion(common);
     expect(a.sig.sig).toBe(b.sig.sig);
     expect(await cidOf(a)).toBe(await cidOf(b));
+  });
+});
+
+describe("answer artifact", () => {
+  test("buildAnswer references question_cid and verifies", async () => {
+    const qKp = generateKeypair();
+    const aKp = generateKeypair();
+    const q = await buildQuestion({
+      keypair: qKp,
+      title: "q",
+      body: "q body",
+      tags: [],
+    });
+    const qCid = await cidOf(q);
+    const answer = await buildAnswer({
+      keypair: aKp,
+      question_cid: qCid,
+      body: "because X",
+      refs: [],
+    });
+    expect(answer.kind).toBe("answer");
+    expect(answer.question_cid).toBe(qCid);
+    expect(answer.author_did).toBe(aKp.did);
+    const v = await verifyArtifact(answer);
+    expect(v.ok).toBe(true);
+  });
+
+  test("buildAnswer omits refs field when empty+not-provided", async () => {
+    const kp = generateKeypair();
+    const a = await buildAnswer({
+      keypair: kp,
+      question_cid: "bafkdeadbeef",
+      body: "hi",
+    });
+    expect("refs" in a).toBe(false);
   });
 });

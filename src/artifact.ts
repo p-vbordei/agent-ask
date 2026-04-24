@@ -140,3 +140,26 @@ function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
   for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
   return true;
 }
+
+export type BuildAnswerOpts = {
+  keypair: Keypair;
+  question_cid: string;
+  body: string;
+  refs?: string[];
+  createdAt?: string;
+  id?: string;
+};
+
+export async function buildAnswer(opts: BuildAnswerOpts): Promise<Answer> {
+  const base = {
+    v: PROTOCOL_VERSION,
+    kind: "answer" as const,
+    id: opts.id ?? crypto.randomUUID(),
+    author_did: opts.keypair.did,
+    created_at: opts.createdAt ?? new Date().toISOString().replace(/\.\d+Z$/, "Z"),
+    question_cid: opts.question_cid,
+    body: opts.body,
+    ...(opts.refs && opts.refs.length > 0 ? { refs: opts.refs } : {}),
+  };
+  return finalize(base, opts.keypair) as Answer;
+}
