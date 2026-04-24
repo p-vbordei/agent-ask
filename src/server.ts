@@ -1,6 +1,8 @@
 import { Hono } from "hono";
 import { type Artifact, verifyArtifact } from "./artifact";
 import type { Store } from "./store";
+import { openStore } from "./store";
+import { pullFromPeer } from "./federation";
 
 export type AppConfig = {
   store: Store;
@@ -84,3 +86,39 @@ export function createApp(config: AppConfig) {
 
   return app;
 }
+
+export function main() {
+  const dbPath = process.env.AGENT_ASK_DB ?? "./agent-ask.db";
+  const port = Number(process.env.AGENT_ASK_PORT ?? 8787);
+  const peers = (process.env.AGENT_ASK_PEERS ?? "").split(",").filter(Boolean);
+  const pollMs = Number(process.env.AGENT_ASK_POLL_MS ?? 60_000);
+
+  const store = openStore(dbPath);
+  const app = createApp({ store });
+
+  const server = Bun.serve({ port, fetch: app.fetch });
+  console.log(JSON.stringify({ event: "listen", port: server.port, dbPath, peers }));
+
+  const lastSeen = new Map<string, string>();
+  if (peers.length > 0) {
+    setInterval(async () => {
+      for (const peer of peers) {
+        try {
+          const result = await pullFromPeer({
+            peerUrl: peer,
+            store,
+            since: lastSeen.get(peer),
+          });
+          if (result.lastSeen) lastSeen.set(peer, result.lastSeen);
+          if (result.count > 0 || result.rejected > 0) {
+            console.log(JSON.stringify({ event: "pull", peer, ...result }));
+          }
+        } catch (e) {
+          console.log(JSON.stringify({ event: "pull_error", peer, error: (e as Error).message }));
+        }
+      }
+    }, pollMs);
+  }
+}
+
+if (import.meta.main) main();
