@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { buildAnswer, buildQuestion, cidOf, verifyArtifact } from "../src/artifact";
+import { buildAnswer, buildQuestion, buildRating, cidOf, verifyArtifact } from "../src/artifact";
 import { generateKeypair } from "../src/identity";
 
 describe("question artifact", () => {
@@ -120,5 +120,27 @@ describe("answer artifact", () => {
       body: "hi",
     });
     expect("refs" in a).toBe(false);
+  });
+});
+
+describe("rating artifact", () => {
+  test("buildRating with score=1 verifies", async () => {
+    const kp = generateKeypair();
+    const rating = await buildRating({
+      keypair: kp,
+      target_cid: "bafkfeedf00d",
+      score: 1,
+      rationale: "correct, reproducible",
+    });
+    expect(rating.score).toBe(1);
+    expect(rating.rationale).toBe("correct, reproducible");
+    const v = await verifyArtifact(rating);
+    expect(v.ok).toBe(true);
+  });
+
+  test("buildRating rejects score=2", async () => {
+    const kp = generateKeypair();
+    // @ts-expect-error testing runtime rejection
+    await expect(buildRating({ keypair: kp, target_cid: "x", score: 2 })).rejects.toThrow();
   });
 });

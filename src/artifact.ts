@@ -163,3 +163,29 @@ export async function buildAnswer(opts: BuildAnswerOpts): Promise<Answer> {
   };
   return finalize(base, opts.keypair) as Answer;
 }
+
+export type BuildRatingOpts = {
+  keypair: Keypair;
+  target_cid: string;
+  score: -1 | 0 | 1;
+  rationale?: string;
+  createdAt?: string;
+  id?: string;
+};
+
+export async function buildRating(opts: BuildRatingOpts): Promise<Rating> {
+  if (![-1, 0, 1].includes(opts.score)) {
+    throw new Error(`invalid rating score: ${opts.score}`);
+  }
+  const base = {
+    v: PROTOCOL_VERSION,
+    kind: "rating" as const,
+    id: opts.id ?? crypto.randomUUID(),
+    author_did: opts.keypair.did,
+    created_at: opts.createdAt ?? new Date().toISOString().replace(/\.\d+Z$/, "Z"),
+    target_cid: opts.target_cid,
+    score: opts.score,
+    ...(opts.rationale ? { rationale: opts.rationale } : {}),
+  };
+  return finalize(base, opts.keypair) as Rating;
+}
