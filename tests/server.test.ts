@@ -135,4 +135,53 @@ describe("server GET routes", () => {
     expect(list.length).toBe(1);
     expect(list[0].id).toBe(q1.id);
   });
+
+  test("GET /feed returns NDJSON of artifacts", async () => {
+    const store2 = openStore(":memory:");
+    const app2 = createApp({ store: store2 });
+    const kp = generateKeypair();
+    const q = await buildQuestion({ keypair: kp, title: "t", body: "b", tags: [] });
+    await app2.request("/questions", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(q),
+    });
+    const res = await app2.request("/feed");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("application/x-ndjson");
+    const text = await res.text();
+    const lines = text.trim().split("\n").filter(Boolean);
+    expect(lines.length).toBe(1);
+    const first = JSON.parse(lines[0]);
+    expect(first).toEqual(q);
+    store2.close();
+  });
+
+  test("GET /feed?since= respects cutoff", async () => {
+    const store3 = openStore(":memory:");
+    const app3 = createApp({ store: store3 });
+    const kp = generateKeypair();
+    const q1 = await buildQuestion({
+      keypair: kp,
+      title: "a",
+      body: "b",
+      tags: [],
+      createdAt: "2026-04-01T00:00:00Z",
+    });
+    const q2 = await buildQuestion({
+      keypair: kp,
+      title: "b",
+      body: "b",
+      tags: [],
+      createdAt: "2026-05-01T00:00:00Z",
+    });
+    // Bypass the ±24h window by inserting directly.
+    await store3.insertArtifact(q1);
+    await store3.insertArtifact(q2);
+    const res = await app3.request("/feed?since=2026-04-15T00:00:00Z");
+    const lines = (await res.text()).trim().split("\n").filter(Boolean);
+    expect(lines.length).toBe(1);
+    expect(JSON.parse(lines[0]).id).toBe(q2.id);
+    store3.close();
+  });
 });

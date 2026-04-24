@@ -65,5 +65,22 @@ export function createApp(config: AppConfig) {
     return c.json(questions);
   });
 
+  app.get("/feed", (c) => {
+    const since = c.req.query("since") ?? undefined;
+    const body = new ReadableStream({
+      start(controller) {
+        const encoder = new TextEncoder();
+        for (const artifact of config.store.streamFeed({ since })) {
+          controller.enqueue(encoder.encode(`${JSON.stringify(artifact)}\n`));
+        }
+        controller.close();
+      },
+    });
+    return new Response(body, {
+      status: 200,
+      headers: { "content-type": "application/x-ndjson; charset=utf-8" },
+    });
+  });
+
   return app;
 }
