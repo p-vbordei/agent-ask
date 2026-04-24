@@ -81,3 +81,58 @@ describe("server POST routes", () => {
     expect(res.status).toBe(400);
   });
 });
+
+describe("server GET routes", () => {
+  let store: Store;
+  let app: ReturnType<typeof createApp>;
+
+  beforeEach(() => {
+    store = openStore(":memory:");
+    app = createApp({ store });
+  });
+  afterEach(() => {
+    store.close();
+  });
+
+  test("GET /artifact/:cid returns the stored artifact (no cid field in body)", async () => {
+    const kp = generateKeypair();
+    const q = await buildQuestion({ keypair: kp, title: "t", body: "b", tags: ["x"] });
+    const qCid = await cidOf(q);
+    await app.request("/questions", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(q),
+    });
+    const res = await app.request(`/artifact/${qCid}`);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body).toEqual(q);
+    expect("cid" in body).toBe(false);
+  });
+
+  test("GET /artifact/:cid 404 on unknown CID", async () => {
+    const res = await app.request("/artifact/bafkunknown");
+    expect(res.status).toBe(404);
+  });
+
+  test("GET /questions lists with tag filter", async () => {
+    const kp = generateKeypair();
+    const q1 = await buildQuestion({ keypair: kp, title: "a", body: "b", tags: ["x"] });
+    const q2 = await buildQuestion({ keypair: kp, title: "b", body: "b", tags: ["y"] });
+    await app.request("/questions", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(q1),
+    });
+    await app.request("/questions", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(q2),
+    });
+    const res = await app.request("/questions?tag=x");
+    expect(res.status).toBe(200);
+    const list = (await res.json()) as { id: string }[];
+    expect(list.length).toBe(1);
+    expect(list[0].id).toBe(q1.id);
+  });
+});

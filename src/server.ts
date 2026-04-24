@@ -52,5 +52,18 @@ export function createApp(config: AppConfig) {
     return result.ok ? c.json({ cid: result.cid }, 201) : c.json({ error: result.error }, result.status);
   });
 
+  app.get("/artifact/:cid", (c) => {
+    const cid = c.req.param("cid");
+    const artifact = config.store.getArtifact(cid);
+    return artifact ? c.json(artifact) : c.json({ error: "not found" }, 404);
+  });
+
+  app.get("/questions", (c) => {
+    const tag = c.req.query("tag") ?? undefined;
+    const since = c.req.query("since") ?? undefined;
+    const questions = config.store.listQuestions({ tag, since });
+    return c.json(questions);
+  });
+
   return app;
 }
