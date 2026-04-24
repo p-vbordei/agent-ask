@@ -29,3 +29,13 @@ venv/
 *.log
 tmp/
 .cache/
+
+# Bun / Node
+node_modules/
+bun.lockb
+
+# Local DB / runtime state
+*.db
+*.db-journal
+.agent-ask-data/
+dist/
