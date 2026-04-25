@@ -20,7 +20,7 @@ The demo starts two in-memory nodes, posts a signed question on node A, federate
 
 ## Status
 
-**0.0 — design phase.** Draft spec in [SPEC.md](./SPEC.md). No code yet. Scope deliberately tightened to single-node + pull-import for v0.1.
+**v0.1.0 — shipped.** Single-node + pull-import federation. See [CHANGELOG.md](./CHANGELOG.md).
 
 ## The gap
 
