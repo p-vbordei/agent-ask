@@ -1,6 +1,8 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { verifyArtifact } from "../src/artifact";
+import { cidOf, type Artifact, verifyArtifact } from "../src/artifact";
+import { openStore } from "../src/store";
+import { pullFromPeer } from "../src/federation";
 
 type Case = {
   name: string;
@@ -34,6 +36,46 @@ for (const f of readdirSync(join(import.meta.dir, "C2-tamper"))) {
     },
   });
 }
+
+cases.push({
+  name: "C3 pull-import produces byte-identical CIDs",
+  async run() {
+    const feedPath = join(import.meta.dir, "C3-federation", "feed.ndjson");
+    const feed = readFileSync(feedPath, "utf8");
+    const expected = feed
+      .split("\n")
+      .filter(Boolean)
+      .map((l) => JSON.parse(l) as Artifact);
+    const store = openStore(":memory:");
+    try {
+      const fakeFetch = async () =>
+        new Response(feed, { status: 200, headers: { "content-type": "application/x-ndjson" } });
+      const newest = expected.reduce((a, b) => (a.created_at > b.created_at ? a : b));
+      const nowFn = () => new Date(newest.created_at);
+      const result = await pullFromPeer({
+        peerUrl: "http://peer",
+        store,
+        fetchFn: fakeFetch,
+        nowFn,
+      });
+      if (result.count !== expected.length) {
+        throw new Error(
+          `expected ${expected.length} imports, got ${result.count} (rejected: ${result.rejected})`,
+        );
+      }
+      for (const art of expected) {
+        const cid = await cidOf(art);
+        if (!store.hasArtifact(cid)) throw new Error(`${cid} not ingested`);
+        const got = store.getArtifact(cid);
+        if (JSON.stringify(got) !== JSON.stringify(art)) {
+          throw new Error(`byte mismatch for ${cid}`);
+        }
+      }
+    } finally {
+      store.close();
+    }
+  },
+});
 
 let failed = 0;
 for (const c of cases) {
