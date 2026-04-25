@@ -12,16 +12,11 @@ export type AppConfig = {
 type IngestOk = { ok: true; cid: string };
 type IngestErr = { ok: false; status: 400 | 413; error: string };
 
+const MAX_BODY = 64 * 1024;
+
 export function createApp(config: AppConfig) {
   const app = new Hono();
   const now = () => (config.nowFn ?? (() => new Date()))();
-
-  const MAX_BODY = 64 * 1024;
-  app.use("*", async (c, next) => {
-    const len = Number(c.req.header("content-length") ?? 0);
-    if (len > MAX_BODY) return c.json({ error: "body too large" }, 413);
-    await next();
-  });
 
   const ingest = async (
     body: unknown,
@@ -48,18 +43,40 @@ export function createApp(config: AppConfig) {
     return { ok: true, cid };
   };
 
-  app.post("/questions", async (c) => {
-    const result = await ingest(await c.req.json(), "question");
-    return result.ok ? c.json({ cid: result.cid }, 201) : c.json({ error: result.error }, result.status);
-  });
-  app.post("/answers", async (c) => {
-    const result = await ingest(await c.req.json(), "answer");
-    return result.ok ? c.json({ cid: result.cid }, 201) : c.json({ error: result.error }, result.status);
-  });
-  app.post("/ratings", async (c) => {
-    const result = await ingest(await c.req.json(), "rating");
-    return result.ok ? c.json({ cid: result.cid }, 201) : c.json({ error: result.error }, result.status);
-  });
+  const handlePost = async (
+    c: Parameters<Parameters<typeof app.post>[1]>[0],
+    kind: "question" | "answer" | "rating",
+  ) => {
+    // Pre-flight content-length check: cheap, catches honest oversize before reading.
+    const cl = Number(c.req.header("content-length") ?? "");
+    if (Number.isFinite(cl) && cl > MAX_BODY) {
+      return c.json({ error: "body too large" }, 413);
+    }
+    let text: string;
+    try {
+      text = await c.req.text();
+    } catch {
+      return c.json({ error: "invalid body" }, 400);
+    }
+    // Stream-side check: catches missing-content-length / chunked.
+    if (new TextEncoder().encode(text).length > MAX_BODY) {
+      return c.json({ error: "body too large" }, 413);
+    }
+    let body: unknown;
+    try {
+      body = JSON.parse(text);
+    } catch {
+      return c.json({ error: "invalid json" }, 400);
+    }
+    const result = await ingest(body, kind);
+    return result.ok
+      ? c.json({ cid: result.cid }, 201)
+      : c.json({ error: result.error }, result.status);
+  };
+
+  app.post("/questions", (c) => handlePost(c, "question"));
+  app.post("/answers", (c) => handlePost(c, "answer"));
+  app.post("/ratings", (c) => handlePost(c, "rating"));
 
   app.get("/artifact/:cid", (c) => {
     const cid = c.req.param("cid");

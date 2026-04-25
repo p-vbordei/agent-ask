@@ -187,16 +187,60 @@ describe("server GET routes", () => {
 });
 
 describe("server body-size limit", () => {
-  test("POST rejects body larger than 64 KiB", async () => {
+  test("POST rejects body larger than 64 KiB with 413 (with content-length)", async () => {
     const store = openStore(":memory:");
     const app = createApp({ store });
     const huge = "x".repeat(64 * 1024 + 100);
+    const body = JSON.stringify({ junk: huge });
+    const res = await app.request("/questions", {
+      method: "POST",
+      headers: { "content-type": "application/json", "content-length": String(body.length) },
+      body,
+    });
+    expect(res.status).toBe(413);
+    store.close();
+  });
+
+  test("POST rejects body larger than 64 KiB with 413 (no content-length, streamed)", async () => {
+    const store = openStore(":memory:");
+    const app = createApp({ store });
+    const huge = "x".repeat(64 * 1024 + 100);
+    const body = JSON.stringify({ junk: huge });
+    // No content-length: simulate chunked. Hono's bodyLimit MUST still reject by reading stream.
     const res = await app.request("/questions", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ junk: huge }),
+      body,
     });
-    expect([400, 413]).toContain(res.status);
+    expect(res.status).toBe(413);
+    store.close();
+  });
+});
+
+describe("server malformed input", () => {
+  test("POST with invalid JSON body returns 400 (not 500)", async () => {
+    const store = openStore(":memory:");
+    const app = createApp({ store });
+    const res = await app.request("/questions", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{not json",
+    });
+    expect(res.status).toBe(400);
+    const data = (await res.json()) as { error: string };
+    expect(data.error).toContain("invalid json");
+    store.close();
+  });
+
+  test("POST with empty body returns 400 (not 500)", async () => {
+    const store = openStore(":memory:");
+    const app = createApp({ store });
+    const res = await app.request("/questions", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "",
+    });
+    expect(res.status).toBe(400);
     store.close();
   });
 });
