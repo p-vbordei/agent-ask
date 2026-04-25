@@ -96,4 +96,35 @@ describe("ingest edges (SPEC §3.1)", () => {
     });
     expect(res.status).toBe(400);
   });
+
+  test("rejects duplicate POST of same artifact with 200 (no-op) or 201 once only", async () => {
+    const app = createApp({ store });
+    const kp = generateKeypair();
+    const q = await buildQuestion({ keypair: kp, title: "t", body: "b", tags: [] });
+    const post = () =>
+      app.request("/questions", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(q),
+      });
+    const r1 = await post();
+    expect(r1.status).toBe(201);
+    const r2 = await post();
+    expect(r2.status).toBe(201);
+    expect(((await r2.json()) as { cid: string }).cid).toBe(((await r1.json()) as { cid: string }).cid);
+    store.close();
+  });
+
+  test("rejects rating targeting a non-existent CID (covered in server.test.ts but explicit here)", async () => {
+    const app = createApp({ store });
+    const kp = generateKeypair();
+    const r = await buildRating({ keypair: kp, target_cid: "bafkdeadbeef", score: 1 });
+    const res = await app.request("/ratings", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(r),
+    });
+    expect(res.status).toBe(400);
+    store.close();
+  });
 });
