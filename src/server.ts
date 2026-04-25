@@ -16,6 +16,13 @@ export function createApp(config: AppConfig) {
   const app = new Hono();
   const now = () => (config.nowFn ?? (() => new Date()))();
 
+  const MAX_BODY = 64 * 1024;
+  app.use("*", async (c, next) => {
+    const len = Number(c.req.header("content-length") ?? 0);
+    if (len > MAX_BODY) return c.json({ error: "body too large" }, 413);
+    await next();
+  });
+
   const ingest = async (
     body: unknown,
     expectedKind: "question" | "answer" | "rating",

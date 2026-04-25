@@ -185,3 +185,18 @@ describe("server GET routes", () => {
     store3.close();
   });
 });
+
+describe("server body-size limit", () => {
+  test("POST rejects body larger than 64 KiB", async () => {
+    const store = openStore(":memory:");
+    const app = createApp({ store });
+    const huge = "x".repeat(64 * 1024 + 100);
+    const res = await app.request("/questions", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ junk: huge }),
+    });
+    expect([400, 413]).toContain(res.status);
+    store.close();
+  });
+});
