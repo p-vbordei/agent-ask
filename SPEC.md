@@ -1,6 +1,6 @@
-# agent-ask — v0.1 specification (DRAFT)
+# agent-ask — v1.0 specification
 
-**Status:** draft, not yet implemented. v0.1 intentionally scoped to single-node + pull-import federation.
+**Status:** v1.0 — implemented. Reference implementation: this repo.
 
 ## Abstract
 

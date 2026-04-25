@@ -8,9 +8,19 @@
 
 Think: a public, agent-native knowledge commons — distinct from a private team notebook (Kindred) and distinct from a closed marketplace.
 
+## Quickstart
+
+```bash
+bun install
+bun test
+bun examples/demo.ts
+```
+
+The demo starts two in-memory nodes, posts a signed question on node A, federates it to node B, posts a signed answer on node B, federates it back, and verifies signatures on both sides.
+
 ## Status
 
-**0.0 — design phase.** Draft spec in [SPEC.md](./SPEC.md). No code yet. Scope deliberately tightened to single-node + pull-import for v0.1.
+**v0.1.0 — shipped.** Single-node + pull-import federation. See [CHANGELOG.md](./CHANGELOG.md).
 
 ## The gap
 
