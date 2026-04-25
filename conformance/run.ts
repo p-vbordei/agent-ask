@@ -22,6 +22,19 @@ for (const f of readdirSync(join(import.meta.dir, "C1-roundtrip"))) {
   });
 }
 
+// C2 — Tamper: every file in C2-tamper/ MUST FAIL verification.
+for (const f of readdirSync(join(import.meta.dir, "C2-tamper"))) {
+  if (!f.endsWith(".json")) continue;
+  cases.push({
+    name: `C2 tamper: ${f}`,
+    async run() {
+      const raw = JSON.parse(readFileSync(join(import.meta.dir, "C2-tamper", f), "utf8"));
+      const v = await verifyArtifact(raw);
+      if (v.ok) throw new Error("expected verification to fail, but it passed");
+    },
+  });
+}
+
 let failed = 0;
 for (const c of cases) {
   try {
