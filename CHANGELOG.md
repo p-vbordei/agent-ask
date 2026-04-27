@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.2.1 — 2026-04-27
+
+Rescope to `@p-vbordei/agent-ask`. No code changes; the
+`@vlad1987654123/agent-ask@0.2.0` placeholder is deprecated and
+points at this version.
+
 ## v0.2.0 — 2026-04-27
 
 ### Breaking

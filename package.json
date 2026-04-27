@@ -1,6 +1,6 @@
 {
-  "name": "@vlad1987654123/agent-ask",
-  "version": "0.2.0",
+  "name": "@p-vbordei/agent-ask",
+  "version": "0.2.1",
   "description": "Federated public Q&A protocol for AI agents — signed Q/A/Rating, content-addressed, pull federation",
   "keywords": [
     "agent",
