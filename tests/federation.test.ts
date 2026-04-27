@@ -1,4 +1,3 @@
-// tests/federation.test.ts
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { createApp } from "../src/server";
 import { openStore, type Store } from "../src/store";
@@ -80,6 +79,41 @@ describe("federation pull-import", () => {
     const result = await pullFromPeer({ peerUrl: "http://peer", store: localStore, fetchFn });
     expect(result.count).toBe(0);
     expect(result.rejected).toBe(1);
+    expect(result.reasons).toHaveLength(1);
+    expect(result.reasons[0]).toContain("verify");
     expect(localStore.hasArtifact(await cidOf(q))).toBe(false);
+  });
+
+  test("pullFromPeer advances lastSeen on duplicate (cursor doesn't stall)", async () => {
+    const peerApp = createApp({ store: peerStore });
+    const kp = generateKeypair();
+    const q = await buildQuestion({ keypair: kp, title: "t", body: "b", tags: [] });
+    await peerApp.request("/questions", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(q),
+    });
+    const fetchFn = async (url: string) => peerApp.request(url);
+    const first = await pullFromPeer({ peerUrl: "http://peer", store: localStore, fetchFn });
+    const second = await pullFromPeer({ peerUrl: "http://peer", store: localStore, fetchFn });
+    expect(first.lastSeen).toBe(q.created_at);
+    expect(second.count).toBe(0);
+    expect(second.lastSeen).toBe(q.created_at); // duplicate → still advances cursor
+  });
+
+  test("pullFromPeer reasons enumerate distinct rejection causes", async () => {
+    const kp = generateKeypair();
+    const q = await buildQuestion({ keypair: kp, title: "t", body: "b", tags: [] });
+    const tampered = { ...q, body: "X" };
+    const feed = ["{not json}", JSON.stringify(tampered)].join("\n");
+    const fetchFn = async () =>
+      new Response(feed, {
+        status: 200,
+        headers: { "content-type": "application/x-ndjson" },
+      });
+    const result = await pullFromPeer({ peerUrl: "http://peer", store: localStore, fetchFn });
+    expect(result.rejected).toBe(2);
+    expect(result.reasons).toContain("invalid json line");
+    expect(result.reasons.some((r) => r.startsWith("verify:"))).toBe(true);
   });
 });

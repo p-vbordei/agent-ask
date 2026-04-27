@@ -135,7 +135,18 @@ export function main() {
           });
           if (result.lastSeen) lastSeen.set(peer, result.lastSeen);
           if (result.count > 0 || result.rejected > 0) {
-            console.log(JSON.stringify({ event: "pull", peer, ...result }));
+            const reasonHistogram: Record<string, number> = {};
+            for (const r of result.reasons) reasonHistogram[r] = (reasonHistogram[r] ?? 0) + 1;
+            console.log(
+              JSON.stringify({
+                event: "pull",
+                peer,
+                count: result.count,
+                rejected: result.rejected,
+                lastSeen: result.lastSeen,
+                reasons: reasonHistogram,
+              }),
+            );
           }
         } catch (e) {
           console.log(JSON.stringify({ event: "pull_error", peer, error: (e as Error).message }));
