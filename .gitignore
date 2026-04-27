@@ -39,3 +39,4 @@ bun.lockb
 *.db-journal
 .agent-ask-data/
 dist/
+.claude/
