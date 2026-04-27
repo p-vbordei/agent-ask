@@ -12,17 +12,28 @@ import {
 
 export const PROTOCOL_VERSION = "agent-ask/0.1" as const;
 
+// Canonical timestamp form per SPEC §2: RFC 3339 in UTC, second-precision, `Z` suffix.
+function isoSecondsNow(): string {
+  return new Date().toISOString().replace(/\.\d+Z$/, "Z");
+}
+
 const SigSchema = z.object({
   alg: z.literal("ed25519"),
   pubkey: z.string(),
   sig: z.string(),
 });
 
+// SPEC §2.4: created_at MUST be RFC 3339 UTC second-precision with `Z` suffix.
+// We enforce this on ingest so non-canonical timestamps don't desync CIDs across implementations.
+const CANONICAL_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
+
 const BaseSchema = z.object({
   v: z.literal(PROTOCOL_VERSION),
   id: z.string().uuid(),
   author_did: z.string().startsWith("did:key:"),
-  created_at: z.string().datetime({ offset: true }),
+  created_at: z
+    .string()
+    .regex(CANONICAL_TIMESTAMP, "must be UTC second-precision with Z suffix"),
   sig: SigSchema,
 });
 
@@ -75,7 +86,7 @@ export async function buildQuestion(opts: BuildQuestionOpts): Promise<Question> 
     kind: "question" as const,
     id: opts.id ?? crypto.randomUUID(),
     author_did: opts.keypair.did,
-    created_at: opts.createdAt ?? new Date().toISOString().replace(/\.\d+Z$/, "Z"),
+    created_at: opts.createdAt ?? isoSecondsNow(),
     title: opts.title,
     body: opts.body,
     tags: opts.tags,
@@ -156,7 +167,7 @@ export async function buildAnswer(opts: BuildAnswerOpts): Promise<Answer> {
     kind: "answer" as const,
     id: opts.id ?? crypto.randomUUID(),
     author_did: opts.keypair.did,
-    created_at: opts.createdAt ?? new Date().toISOString().replace(/\.\d+Z$/, "Z"),
+    created_at: opts.createdAt ?? isoSecondsNow(),
     question_cid: opts.question_cid,
     body: opts.body,
     ...(opts.refs && opts.refs.length > 0 ? { refs: opts.refs } : {}),
@@ -182,7 +193,7 @@ export async function buildRating(opts: BuildRatingOpts): Promise<Rating> {
     kind: "rating" as const,
     id: opts.id ?? crypto.randomUUID(),
     author_did: opts.keypair.did,
-    created_at: opts.createdAt ?? new Date().toISOString().replace(/\.\d+Z$/, "Z"),
+    created_at: opts.createdAt ?? isoSecondsNow(),
     target_cid: opts.target_cid,
     score: opts.score,
     ...(opts.rationale ? { rationale: opts.rationale } : {}),

@@ -66,7 +66,13 @@ Kind-specific fields:
 }
 ```
 
+### 2.4 Canonical encoding
+
 Canonical encoding: JCS ([RFC 8785](https://www.rfc-editor.org/rfc/rfc8785)). CID computed via multihash sha-256 over the canonical encoding.
+
+`created_at` MUST be RFC 3339 in UTC, second precision, `Z` suffix — i.e., the regex `^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$`. Implementations MUST emit this exact form and MAY reject other RFC 3339 forms (e.g., `+00:00` offset, fractional seconds) on ingest. This restriction exists so two implementations producing the same logical artifact at the same instant produce byte-identical bytes — and therefore byte-identical CIDs.
+
+`sig.pubkey` and `sig.sig` are base64 (RFC 4648 §4, with padding). Implementations MUST emit padded base64 and MUST accept only padded base64 on ingest.
 
 ## 3. HTTP API
 

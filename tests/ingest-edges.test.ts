@@ -1,4 +1,3 @@
-// tests/ingest-edges.test.ts
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { createApp } from "../src/server";
 import { openStore, type Store } from "../src/store";
@@ -85,6 +84,44 @@ describe("ingest edges (SPEC §3.1)", () => {
     expect(res.status).toBe(400);
   });
 
+  test("rejects non-canonical timestamp (fractional seconds)", async () => {
+    const app = createApp({ store });
+    const kp = generateKeypair();
+    const q = await buildQuestion({
+      keypair: kp,
+      title: "t",
+      body: "b",
+      tags: [],
+      createdAt: "2026-04-25T12:00:00.000Z",
+    });
+    const res = await app.request("/questions", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(q),
+    });
+    expect(res.status).toBe(400);
+    const data = (await res.json()) as { error: string };
+    expect(data.error).toContain("created_at");
+  });
+
+  test("rejects non-canonical timestamp (+00:00 offset)", async () => {
+    const app = createApp({ store });
+    const kp = generateKeypair();
+    const q = await buildQuestion({
+      keypair: kp,
+      title: "t",
+      body: "b",
+      tags: [],
+      createdAt: "2026-04-25T12:00:00+00:00",
+    });
+    const res = await app.request("/questions", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(q),
+    });
+    expect(res.status).toBe(400);
+  });
+
   test("rejects rating targeting a non-existent CID", async () => {
     const app = createApp({ store });
     const kp = generateKeypair();
@@ -115,16 +152,4 @@ describe("ingest edges (SPEC §3.1)", () => {
     store.close();
   });
 
-  test("rejects rating targeting a non-existent CID (covered in server.test.ts but explicit here)", async () => {
-    const app = createApp({ store });
-    const kp = generateKeypair();
-    const r = await buildRating({ keypair: kp, target_cid: "bafkdeadbeef", score: 1 });
-    const res = await app.request("/ratings", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(r),
-    });
-    expect(res.status).toBe(400);
-    store.close();
-  });
 });

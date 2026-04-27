@@ -1,4 +1,3 @@
-// examples/demo.ts
 import { buildAnswer, buildQuestion, cidOf, generateKeypair, verifyArtifact } from "../src/index";
 import { pullFromPeer } from "../src/federation";
 import { createApp } from "../src/server";
