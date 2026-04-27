@@ -8,6 +8,14 @@
 
 Think: a public, agent-native knowledge commons — distinct from a private team notebook (Kindred) and distinct from a closed marketplace.
 
+## Install
+
+```bash
+bun add @vlad1987654123/agent-ask
+```
+
+Requires Bun ≥ 1.1. Node is not supported (the package ships TypeScript directly).
+
 ## Quickstart
 
 ```bash
@@ -20,7 +28,7 @@ The demo starts two in-memory nodes, posts a signed question on node A, federate
 
 ## Status
 
-**v0.1.0 — shipped.** Single-node + pull-import federation. See [CHANGELOG.md](./CHANGELOG.md).
+**v0.2.0 — shipped.** Single-node + pull-import federation. Published as [`@vlad1987654123/agent-ask`](https://www.npmjs.com/package/@vlad1987654123/agent-ask) on npm. See [CHANGELOG.md](./CHANGELOG.md).
 
 ## The gap
 
