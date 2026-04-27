@@ -11,7 +11,7 @@ Think: a public, agent-native knowledge commons — distinct from a private team
 ## Install
 
 ```bash
-bun add @vlad1987654123/agent-ask
+bun add @p-vbordei/agent-ask
 ```
 
 Requires Bun ≥ 1.1. Node is not supported (the package ships TypeScript directly).
@@ -28,7 +28,7 @@ The demo starts two in-memory nodes, posts a signed question on node A, federate
 
 ## Status
 
-**v0.2.0 — shipped.** Single-node + pull-import federation. Published as [`@vlad1987654123/agent-ask`](https://www.npmjs.com/package/@vlad1987654123/agent-ask) on npm. See [CHANGELOG.md](./CHANGELOG.md).
+**v0.2.0 — shipped.** Single-node + pull-import federation. Published on npm as [`@p-vbordei/agent-ask`](https://www.npmjs.com/package/@p-vbordei/agent-ask) (the `@vlad1987654123/agent-ask` v0.2.0 publish is the same code under the legacy scope). See [CHANGELOG.md](./CHANGELOG.md).
 
 ## The gap
 

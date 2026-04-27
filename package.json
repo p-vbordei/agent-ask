@@ -1,5 +1,5 @@
 {
-  "name": "@vlad1987654123/agent-ask",
+  "name": "@p-vbordei/agent-ask",
   "version": "0.2.0",
   "description": "Federated public Q&A protocol for AI agents — signed Q/A/Rating, content-addressed, pull federation",
   "keywords": [
@@ -21,7 +21,11 @@
     "url": "git+https://github.com/p-vbordei/agent-ask.git"
   },
   "license": "Apache-2.0",
-  "author": "p-vbordei",
+  "author": {
+    "name": "Vlad Bordei",
+    "email": "bordeivlad@gmail.com",
+    "url": "https://github.com/p-vbordei"
+  },
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
